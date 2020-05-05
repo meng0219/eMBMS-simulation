@@ -77,6 +77,7 @@ def pktCret(arrEvent):  # creating a packet in buffer (the packets arrival event
                 pktSize = p.pktSizeTable[p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
                 p.numRtPkt += 1
                 pkt = packet(p.pktId, pktSize, p.DelayThr[srv])
+                p.eMBMSpktLen[list(p.eMBMSpkt.keys()).index(srv)] += pktSize
                 p.eMBMSpkt[srv].append(pkt)
         p.pktId += 1
 
@@ -90,11 +91,11 @@ def addDelay():  # adding the delay time of each packet
                 ue.pktList.pop(0)  # remove the invalid packets
                 ue.numInvPkt += 1
                 p.numInvPkt += 1
-    for srv in p.eMBMSpkt:
-        for pkt in srv:
+    for srv, pktList in p.eMBMSpkt.items():
+        for pkt in pktList:
             pkt.delay += 1
             if pkt.delay > pkt.DelayThr:  # checking is there any invalid packet
-                srv.pop(0)  # remove the invalid packets
+                pktList.pop(0)  # remove the invalid packets
                 p.numInvPkt += 1
 
 
@@ -130,20 +131,28 @@ def modfPara():  # modifying the parameter of EXP/PF
         p.pNRT += 1 / 2
 
 
-def resourceAllocation():  # allocating the subframe's resource to UE
+def resourceAllocation(mod):  # allocating the subframe's resource
     nRB = p.NumRbsPerSf
     pktNum = p.numRtPkt
     cutDelay = 0
-    while nRB and max(p.priority)!=-1:
-        index = p.priority.index(max(p.priority))  # find the maximum priority UE
-        cdelay, costRB = AllocResource2UE(min(nRB, p.MaxRbAssigned), p.UeList[index])
-        cutDelay += cdelay
-        nRB = nRB - costRB
-        p.priority[index] = -1
-
+    if mod:  # allocate the resource to eMBMS sessions
+        for i in range(len(p.MSA)):
+            if p.MSA[i]:
+                p.MSA[i] -= 1
+                while nRB:
+                    cdelay, costRB = AllocResource2Embms(nRB, i)
+                    cutDelay += cdelay
+                    nRB = nRB - costRB
+                break
+    else:    # allocate the resource to UEs
+        while nRB and max(p.priority)!=-1:
+            index = p.priority.index(max(p.priority))  # find the maximum priority UE
+            cdelay, costRB = AllocResource2UE(min(nRB, p.MaxRbAssigned), p.UeList[index])
+            cutDelay += cdelay
+            nRB = nRB - costRB
+            p.priority[index] = -1
     if nRB:
         p.unusedRB += nRB
-
     if p.numRtPkt:
         p.avgPktDelay = ((p.avgPktDelay * pktNum) - cutDelay) / p.numRtPkt
 
@@ -172,7 +181,7 @@ def AllocResource2UE(nRB, ue):  # allocating the resource to the UE
         return cdelay, nRB
 
     else:  # the expData can carry all packets
-        for numRB in range(1, 21):
+        for numRB in range(1, nRB+1):
             if p.TbsTable[numRB][ue.TbsIndex] >= ue.buffLen:
                 break
         while ue.pktList:
@@ -185,6 +194,47 @@ def AllocResource2UE(nRB, ue):  # allocating the resource to the UE
                 p.numRtPkt -= 1
             else:
                 p.numNrtPkt -= 1
+        return cdelay, numRB
+
+
+def AllocResource2Embms(nRB, i):  # allocating the resource to the UE
+    srv = list(p.eMBMSpkt.keys())[i]
+    expData = p.TbsTable[nRB][p.SessTbs[srv]]  # the amount of bits can be carried
+    cdelay = 0  # the amount of cutting delay
+    sumThroughput = 0
+    if p.eMBMSpktLen[i] > expData:  # the expData cannot carry all packets
+        while expData-p.eMBMSpkt[srv][0].size >= 0:  # the expData can carry a entire packet
+            pkt = p.eMBMSpkt[srv].pop(0)
+            cdelay += pkt.delay
+            expData -= pkt.size
+            sumThroughput += pkt.size
+            p.sysThroughput += pkt.size
+            p.eMBMSpktLen[i] -= pkt.size
+            p.numRtPkt -= 1
+
+        p.eMBMSpkt[srv][0].size -= expData  # the rest expData just can  carry a part of packet
+        p.eMBMSpktLen[i] -= expData
+        p.sysThroughput += expData
+        sumThroughput += expData
+
+        for i in p.listSuber[srv]:
+            p.UeList[i].throughput += sumThroughput
+        return cdelay, nRB
+
+    else:  # the expData can carry all packets
+        for numRB in range(1, nRB+1):
+            if p.TbsTable[numRB][p.SessTbs[srv]] >= p.eMBMSpktLen[i]:
+                break
+        while p.eMBMSpkt[srv]:
+            pkt = p.eMBMSpkt[srv].pop(0)
+            cdelay += pkt.delay
+            p.eMBMSpktLen[i] -= pkt.size
+            p.sysThroughput += pkt.size
+            sumThroughput += pkt.size
+            p.numRtPkt -= 1
+
+        for i in p.listSuber[srv]:
+            p.UeList[i].throughput += sumThroughput
         return cdelay, numRB
 
 
@@ -220,18 +270,29 @@ def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme
         p.rateEmbmsRs += mod
         KPS()
         p.setEmbmsSess.sort()
-        if mod:
+        if not mod:
             break
         if p.setEmbmsSess != currSetEmbmsSess:  # until the set is different from original set
             break
+    p.MSA = p.cost
     LRCSAPG()
     uniSwMult()
 
 
 def uniSwMult():  # switching unicast communication to multicast
     p.eMBMSpkt = {}
+    p.eMBMSpktLen = []
     for srv in p.setEmbmsSess:
         p.eMBMSpkt.update({srv:[]})
+        p.eMBMSpktLen.append(0)
+        for i in range(3+srv):
+            pktSize = p.pktSizeTable[
+                p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
+            p.numRtPkt += 1
+            pkt = packet(p.pktId, pktSize, p.DelayThr[srv])
+            p.eMBMSpkt[srv].append(pkt)
+            p.eMBMSpktLen[list(p.eMBMSpkt.keys()).index(srv)] += pktSize
+            p.pktId += 1
         for i in p.listSuber[srv]:
             p.UeList[i].pktList = []
             p.UeList[i].srvQ = p.SessQ[srv]

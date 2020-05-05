@@ -8,6 +8,9 @@ for currTime in range(p.simTime):
     if not currTime % 1000:
         newUE(np.random.poisson(3))  # create the UE
 
+    if not currTime % p.csaPeriod - p.eMBMS_triggerTime:  # a new CSA Period
+        p.MSA = p.cost  # reset the amount of resource for each eMBMS session
+
     # ue changes the site
     if not currTime % 50:
         for ue in p.UeList:
@@ -30,11 +33,12 @@ for currTime in range(p.simTime):
 
     # assign resource to eMBMS
     if len(p.sf2eMBMS) and currTime == p.sf2eMBMS[0]:  # the time is reserved to eMBMS
+        resourceAllocation(1)
         p.sf2eMBMS.remove(p.sf2eMBMS[0])
 
     # assign resource to unicast UE
     else:
-        resourceAllocation()
+        resourceAllocation(0)
         if not p.numRtPkt + p.numNrtPkt and not p.decFlag:  # if there is no data needs to transmit
             p.decFlag = True
             p.time_unusedRB = currTime % 5120
@@ -77,5 +81,10 @@ for currTime in range(p.simTime):
         modResourceAlloSchemeforeMBMS(-0.01)
         allocSf2eMBMS(currTime)
 
-print("PLR:", p.numInvPkt / p.pktId)
+UeThroughput = 0
+for ue in p.UeList:
+    UeThroughput += ue.throughput
+print("ADR:", UeThroughput / p.numUE)
+print("IPR:", p.numInvPkt / p.pktId)
 print("RUR:", p.unusedRB / (p.NumRbsPerSf*p.simTime))
+print("RE:", p.setEmbmsSess/ (p.NumRbsPerSf*p.simTime))

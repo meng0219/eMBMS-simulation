@@ -1,7 +1,7 @@
 import math
 
 # the basic parameters
-simTime = 2*60*1000 # the time length of simulation (ms)
+simTime = 1*60*1000 # the time length of simulation (ms)
 NumRbsPerSf = 15  # number of RBs in a sub-frame
 MaxRbAssigned = 5  # the maximum number of assigned RBs to a UE
 speed = [-60, -70, -80, 60, 70, 80]
@@ -34,6 +34,7 @@ RtUeList = []  # the list of RT UEs <index>
 eventList = {}  # the event list <packet>
 priority = []  # the priority of resource allocation for UEs
 eMBMSpkt = {}  # the dict of eMBMS session's packets
+eMBMSpktLen = []  # the length of eMBMS session's packet buffer
 
 # method valuable
 eMBMS_triggerTime = -1
@@ -54,6 +55,7 @@ SessQ = [0] * numSrv
 SessTbs = [0] * numSrv
 rou = [0] * 5120
 sf2eMBMS = []
+MSA = cost
 
 TbsTable=[
  [  0,   0,   0,   0,   0,   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0],
