@@ -1,7 +1,7 @@
 import math
 
 # the basic parameters
-simTime = 1*60*1000 # the time length of simulation (ms)
+simTime = 2*60*1000 # the time length of simulation (ms)
 NumRbsPerSf = 15  # number of RBs in a sub-frame
 MaxRbAssigned = 5  # the maximum number of assigned RBs to a UE
 speed = [-60, -70, -80, 60, 70, 80]
@@ -55,7 +55,7 @@ SessQ = [0] * numSrv
 SessTbs = [0] * numSrv
 rou = [0] * 5120
 sf2eMBMS = []
-MSA = cost
+MSA = []
 
 TbsTable=[
  [  0,   0,   0,   0,   0,   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0],

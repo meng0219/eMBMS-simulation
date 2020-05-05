@@ -1,5 +1,6 @@
 import numpy as np
 from simCls import *
+import copy
 
 
 def choseSrv(i):  # choosing a RT service for UE <0: NRT; others: RT>
@@ -73,7 +74,7 @@ def pktCret(arrEvent):  # creating a packet in buffer (the packets arrival event
             ue.pktList.append(pkt)
         else:
             srv = int(i[1])
-            if p.eMBMSpkt.get(srv):
+            if srv in p.eMBMSpkt.keys():
                 pktSize = p.pktSizeTable[p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
                 p.numRtPkt += 1
                 pkt = packet(p.pktId, pktSize, p.DelayThr[srv])
@@ -95,6 +96,7 @@ def addDelay():  # adding the delay time of each packet
         for pkt in pktList:
             pkt.delay += 1
             if pkt.delay > pkt.DelayThr:  # checking is there any invalid packet
+                p.eMBMSpktLen[list(p.eMBMSpkt.keys()).index(srv)] -= pkt.size
                 pktList.pop(0)  # remove the invalid packets
                 p.numInvPkt += 1
 
@@ -138,11 +140,10 @@ def resourceAllocation(mod):  # allocating the subframe's resource
     if mod:  # allocate the resource to eMBMS sessions
         for i in range(len(p.MSA)):
             if p.MSA[i]:
+                cdelay, costRB = AllocResource2Embms(nRB, i)
+                cutDelay += cdelay
+                nRB = nRB - costRB
                 p.MSA[i] -= 1
-                while nRB:
-                    cdelay, costRB = AllocResource2Embms(nRB, i)
-                    cutDelay += cdelay
-                    nRB = nRB - costRB
                 break
     else:    # allocate the resource to UEs
         while nRB and max(p.priority)!=-1:
@@ -202,6 +203,7 @@ def AllocResource2Embms(nRB, i):  # allocating the resource to the UE
     expData = p.TbsTable[nRB][p.SessTbs[srv]]  # the amount of bits can be carried
     cdelay = 0  # the amount of cutting delay
     sumThroughput = 0
+
     if p.eMBMSpktLen[i] > expData:  # the expData cannot carry all packets
         while expData-p.eMBMSpkt[srv][0].size >= 0:  # the expData can carry a entire packet
             pkt = p.eMBMSpkt[srv].pop(0)
@@ -274,7 +276,7 @@ def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme
             break
         if p.setEmbmsSess != currSetEmbmsSess:  # until the set is different from original set
             break
-    p.MSA = p.cost
+    p.MSA = copy.deepcopy(p.cost)
     LRCSAPG()
     uniSwMult()
 
@@ -285,7 +287,7 @@ def uniSwMult():  # switching unicast communication to multicast
     for srv in p.setEmbmsSess:
         p.eMBMSpkt.update({srv:[]})
         p.eMBMSpktLen.append(0)
-        for i in range(3+srv):
+        for i in range(3):
             pktSize = p.pktSizeTable[
                 p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
             p.numRtPkt += 1
@@ -369,6 +371,7 @@ def knapSack(EmbmsRs, cost, value, setMMS):
             setEmbmsSessCost.append(cost[i])
             j -= cost[i]
         i -= 1
+    setEmbmsSessCost.reverse()
     return benefit[EmbmsRs], setEmbmsSess, setEmbmsSessCost
 
 

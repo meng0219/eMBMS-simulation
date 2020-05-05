@@ -1,5 +1,6 @@
 from simFunc import *
 from simCls import *
+import copy
 
 #  main procedure
 newUE(20)
@@ -8,8 +9,8 @@ for currTime in range(p.simTime):
     if not currTime % 1000:
         newUE(np.random.poisson(3))  # create the UE
 
-    if not currTime % p.csaPeriod - p.eMBMS_triggerTime:  # a new CSA Period
-        p.MSA = p.cost  # reset the amount of resource for each eMBMS session
+    if p.eMBMS_triggerTime != -1 and not (currTime - p.eMBMS_triggerTime) % (p.csaPeriod*10) :  # a new CSA Period
+        p.MSA = copy.deepcopy(p.cost)  # reset the amount of resource for each eMBMS session
 
     # ue changes the site
     if not currTime % 50:
@@ -48,7 +49,7 @@ for currTime in range(p.simTime):
     calRou(currTime)  # calculate the rou of the time
 
     # calculate the equation (10)
-    if p.eMBMS_triggerTime != -1 and not currTime % 5120 - p.eMBMS_triggerTime:
+    if p.eMBMS_triggerTime != -1 and not (currTime - p.eMBMS_triggerTime) % (p.mcchModificationPeriod*10) :
         calAvgDifRou(0)  # calculate the equation (10)
         if not p.incFlag:  # if doesn't need to modify the resources scheme
             modResourceAlloSchemeforeMBMS(0)
@@ -87,4 +88,4 @@ for ue in p.UeList:
 print("ADR:", UeThroughput / p.numUE)
 print("IPR:", p.numInvPkt / p.pktId)
 print("RUR:", p.unusedRB / (p.NumRbsPerSf*p.simTime))
-print("RE:", p.setEmbmsSess/ (p.NumRbsPerSf*p.simTime))
+print("RE:", p.sysThroughput/ (p.NumRbsPerSf*p.simTime))
