@@ -47,8 +47,7 @@ for currTime in range(p.simTime):
     if p.eMBMS_triggerTime != -1 and not currTime % 5120 - p.eMBMS_triggerTime:
         calAvgDifRou(0)  # calculate the equation (10)
         if not p.incFlag:  # if doesn't need to modify the resources scheme
-            KPS()
-            LRCSAPG()
+            modResourceAlloSchemeforeMBMS(0)
             allocSf2eMBMS(currTime)
 
     # changing the streaming quality of unicast UE

@@ -44,32 +44,40 @@ def buildEvent(srv, currTime):  # creating a new packet arrived event (service, 
                     p.eventList[t].append(i)
                 else:  # if there is no event, creating the time point and adding a new event
                     p.eventList.update({currTime + int(offsetTime): [i]})
-    """else:
+    else:
         x = np.random.pareto(1.2, 8) + 2.5  # alpha = 1.2; number of variable: 8; baseline: 2.5ms
         x = x[x < 100][:4]  # the upper bound is 100ms, and each video frame has 4 packet
         for offsetTime in x:
             t = currTime + int(offsetTime) + srv
             if p.eventList.get(t):  # if there is any event in the time, adding a new event with it
-                p.eventList[t].append("s")
+                p.eventList[t].append("s"+str(srv))
             else:  # if there is no event, creating the time point and adding a new event
-                p.eventList.update({currTime + int(offsetTime): ["s"]})"""
+                p.eventList.update({currTime + int(offsetTime): ["s"+str(srv)]})
 
 
 def pktCret(arrEvent):  # creating a packet in buffer (the packets arrival event)
     for i in arrEvent:  # the arrEvent is a list which records the UE's Id
-        ue = p.UeList[i]
-        if ue.srv in p.setEmbmsSess:
-            continue
-        if ue.srv == 0:  # if the service is NRT
-            pktSize = (np.random.lognormal(0.8568, 2.00256, 1) + 0.001) * 100000
-            p.numNrtPkt += 1
-        else:  # if the service is RT
-            pktSize = p.pktSizeTable[ue.srvQ]  # the packet size according to the streaming quality that the UE receives
-            p.numRtPkt += 1
-        pkt = packet(p.pktId, pktSize, p.DelayThr[ue.srv])
-        ue.numPkt += 1
-        ue.buffLen += pktSize
-        ue.pktList.append(pkt)
+        if type(i) == int:
+            ue = p.UeList[i]
+            if ue.srv in p.setEmbmsSess:
+                continue
+            if ue.srv == 0:  # if the service is NRT
+                pktSize = (np.random.lognormal(0.8568, 2.00256, 1) + 0.001) * 100000
+                p.numNrtPkt += 1
+            else:  # if the service is RT
+                pktSize = p.pktSizeTable[ue.srvQ]  # the packet size according to the streaming quality that the UE receives
+                p.numRtPkt += 1
+            pkt = packet(p.pktId, pktSize, p.DelayThr[ue.srv])
+            ue.numPkt += 1
+            ue.buffLen += pktSize
+            ue.pktList.append(pkt)
+        else:
+            srv = int(i[1])
+            if p.eMBMSpkt.get(srv):
+                pktSize = p.pktSizeTable[p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
+                p.numRtPkt += 1
+                pkt = packet(p.pktId, pktSize, p.DelayThr[srv])
+                p.eMBMSpkt[srv].append(pkt)
         p.pktId += 1
 
 
@@ -81,6 +89,12 @@ def addDelay():  # adding the delay time of each packet
                 ue.buffLen -= pkt.size
                 ue.pktList.pop(0)  # remove the invalid packets
                 ue.numInvPkt += 1
+                p.numInvPkt += 1
+    for srv in p.eMBMSpkt:
+        for pkt in srv:
+            pkt.delay += 1
+            if pkt.delay > pkt.DelayThr:  # checking is there any invalid packet
+                srv.pop(0)  # remove the invalid packets
                 p.numInvPkt += 1
 
 
@@ -206,6 +220,8 @@ def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme
         p.rateEmbmsRs += mod
         KPS()
         p.setEmbmsSess.sort()
+        if mod:
+            break
         if p.setEmbmsSess != currSetEmbmsSess:  # until the set is different from original set
             break
     LRCSAPG()
@@ -213,7 +229,9 @@ def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme
 
 
 def uniSwMult():  # switching unicast communication to multicast
+    p.eMBMSpkt = {}
     for srv in p.setEmbmsSess:
+        p.eMBMSpkt.update({srv:[]})
         for i in p.listSuber[srv]:
             p.UeList[i].pktList = []
             p.UeList[i].srvQ = p.SessQ[srv]
