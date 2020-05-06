@@ -25,10 +25,3 @@ class packet:
         self.size = size
         self.DelayThr = DelayThr
         self.delay = 0
-
-class eMBMSsession:
-    def __init__(self, srv, srvQ, TbsIndex):
-        self.srv = srv
-        self.srvQ = srvQ
-        self.pktList = []
-        self.TbsIndex = TbsIndex

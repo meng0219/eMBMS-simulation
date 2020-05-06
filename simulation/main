@@ -3,13 +3,15 @@ from simCls import *
 import copy
 
 #  main procedure
-newUE(20)
+newUE(200)
 for currTime in range(p.simTime):
 
-    if not currTime % 1000:
-        newUE(np.random.poisson(3))  # create the UE
+    # create the UEs
+    """if not currTime % 1000:
+        newUE(np.random.poisson(3))"""
 
-    if p.eMBMS_triggerTime != -1 and not (currTime - p.eMBMS_triggerTime) % (p.csaPeriod*10) :  # a new CSA Period
+    # a new CSA Period -> reset the MSA
+    if p.eMBMS_triggerTime != -1 and not currTime % (p.csaPeriod*10) - p.eMBMS_triggerTime :
         p.MSA = copy.deepcopy(p.cost)  # reset the amount of resource for each eMBMS session
 
     # ue changes the site
@@ -17,14 +19,14 @@ for currTime in range(p.simTime):
         for ue in p.UeList:
             changeSite(ue)
 
-    # a new video frame is sent (25FPS video,i.e., 1 video frame per 40ms)
+    # create a sequential packets arrival event of a new video frame (25FPS video,i.e., 1 video frame per 40ms)
     if not currTime % 40 and currTime:
         for i in range(1, p.numSrv):  # create the event of RT packets arriving
             buildEvent(i, currTime)
 
-    while p.eventList.get(currTime):  # there are packets arrived at this moment
+    # there are packets arrived at this moment
+    while p.eventList.get(currTime):
         pktCret(p.eventList.pop(currTime))
-
     modfPara()  # modify the scheduler's parameter
 
     # calculate resource allocation priority for each UE
@@ -40,29 +42,22 @@ for currTime in range(p.simTime):
     # assign resource to unicast UE
     else:
         resourceAllocation(0)
-        if not p.numRtPkt + p.numNrtPkt and not p.decFlag:  # if there is no data needs to transmit
-            p.decFlag = True
+        # if there is no data needs to transmit which is first time in the period
+        if not p.numRtPkt + p.numNrtPkt and p.time_unusedRB == -1 and p.sysThroughput:
             p.time_unusedRB = currTime % 5120
 
     addDelay()  # add the delay time of each packet
 
     calRou(currTime)  # calculate the rou of the time
 
-    # calculate the equation (10)
-    if p.eMBMS_triggerTime != -1 and not (currTime - p.eMBMS_triggerTime) % (p.mcchModificationPeriod*10) :
-        calAvgDifRou(0)  # calculate the equation (10)
-        if not p.incFlag:  # if doesn't need to modify the resources scheme
-            modResourceAlloSchemeforeMBMS(0)
-            allocSf2eMBMS(currTime)
-
-    # changing the streaming quality of unicast UE
+    # improving the streaming quality of unicast UE
     if not currTime % 3000 and currTime:
         for ue in p.UeList:
             if ue.numInvPkt == 0 and ue.srvQ < 7 and not ue.srv in p.setEmbmsSess:  # improve the streaming quality
                 ue.srvQ += 1
             ue.numInvPkt = ue.numPkt = 0
 
-    # trigger eMBMS if there any UE's IPR exceeds its tolerate
+    # trigger eMBMS if there any UE's IPR exceeds its tolerate and reduce the streaming quality of the UE
     if not currTime % 2000 and currTime:
         for ue in p.UeList:
             if ue.numInvPkt / (ue.numPkt + 1) >= p.Tolerate[ue.srv]:
@@ -70,16 +65,20 @@ for currTime in range(p.simTime):
                 if ue.srvQ > 0:
                     ue.srvQ -= 1
                 if p.eMBMS_triggerTime == -1:
-                    p.eMBMS_triggerTime = currTime % 5120
+                    p.eMBMS_triggerTime = int(currTime/10) * 10 % 5120
 
-    if p.unusedRbHappend:  # if unused RB event is happened
-        calAvgDifRou(p.time_unusedRB)  # calculate the equation (13)
-
-    if not currTime % 5120 - p.eMBMS_triggerTime and p.incFlag:  # increasing the resource for eMBMS
-        modResourceAlloSchemeforeMBMS(0.01)
-        allocSf2eMBMS(currTime)
-    elif not currTime % 5120 - p.eMBMS_triggerTime and p.decFlag:  # decreasing the resource for eMBMS
-        modResourceAlloSchemeforeMBMS(-0.01)
+    # modifying the resource for eMBMS
+    if p.eMBMS_triggerTime != -1 and not currTime % (p.mcchModificationPeriod * 10) - p.eMBMS_triggerTime:
+        calAvgDifRou(p.eMBMS_triggerTime)  # calculate the equation (10)
+        if p.time_unusedRB != -1:  # if unused RB event was happened in the period
+            calAvgDifRou(p.time_unusedRB)  # calculate the equation (13)
+        if p.incFlag:  # increasing the resource for eMBMS
+            modResourceAlloSchemeforeMBMS(0.01)
+        elif p.decFlag and p.rateEmbmsRs:  # decreasing the resource for eMBMS
+            modResourceAlloSchemeforeMBMS(-0.01)
+        else:
+            modResourceAlloSchemeforeMBMS(0)
+        p.time_unusedRB = -1
         allocSf2eMBMS(currTime)
 
 UeThroughput = 0
@@ -87,5 +86,5 @@ for ue in p.UeList:
     UeThroughput += ue.throughput
 print("ADR:", UeThroughput / p.numUE)
 print("IPR:", p.numInvPkt / p.pktId)
-print("RUR:", p.unusedRB / (p.NumRbsPerSf*p.simTime))
-print("RE:", p.sysThroughput/ (p.NumRbsPerSf*p.simTime))
+print("URR:", p.unusedRB / (p.NumRbsPerSf*p.simTime))
+print("RE:", p.sysThroughput / (p.NumRbsPerSf*p.simTime))

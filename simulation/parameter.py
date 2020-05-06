@@ -13,7 +13,7 @@ unusedRB = 0  # the number of unused RBs (init)
 
 # the service parameters
 numSrv = 5  # the number of kinds of service
-ratSrv = [0.05, 0.25, 0.25, 0.30, 0.15]  # the ratio of each service (the first is NRT service)
+ratSrv = [0, 0.25, 0.25, 0.30, 0.2]  # the ratio of each service (the first is NRT service)
 MaxDelayThr = 1000  # the maximum delay threshold of RT users
 DelayThr = [math.inf, 400, 450, 600, 1000]  # the threshold of packet delay
 Tolerate = [1, 0.01, 0.015, 0.02, 0.025]  # the maximum probability for HOL packet delay of UE to exceed DelayThr
@@ -23,9 +23,9 @@ pktSizeTable = [128, 256, 384, 512, 640, 768, 896, 1024]  # the packet size of e
 pNRT = 0  # the weight of NRT (init)
 pktId = 0  # the packet Id (init)
 numUE = 0  # the amount of UEs in the cell (init)
+numEmbmsPkt = 0  # the sum of number of eMBMS packets (init)
 numRtPkt = 0  # the sum of number of RT packets (init)
 numNrtPkt = 0  # the sum of number of NRT packets (init)
-numRedundantRB = 0  # the number of redundantly assigned RB (init)
 numUnusedRB = 0  # the number of unused RBs (init)
 AvgAlphaDelay = 1  # the average waiting time of RT users (init)
 avgPktDelay = 1  # the average number of RT packets waiting at buffer (init)

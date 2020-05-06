@@ -76,7 +76,7 @@ def pktCret(arrEvent):  # creating a packet in buffer (the packets arrival event
             srv = int(i[1])
             if srv in p.eMBMSpkt.keys():
                 pktSize = p.pktSizeTable[p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
-                p.numRtPkt += 1
+                p.numEmbmsPkt += 1
                 pkt = packet(p.pktId, pktSize, p.DelayThr[srv])
                 p.eMBMSpktLen[list(p.eMBMSpkt.keys()).index(srv)] += pktSize
                 p.eMBMSpkt[srv].append(pkt)
@@ -92,6 +92,7 @@ def addDelay():  # adding the delay time of each packet
                 ue.pktList.pop(0)  # remove the invalid packets
                 ue.numInvPkt += 1
                 p.numInvPkt += 1
+                p.numRtPkt -= 1
     for srv, pktList in p.eMBMSpkt.items():
         for pkt in pktList:
             pkt.delay += 1
@@ -152,10 +153,10 @@ def resourceAllocation(mod):  # allocating the subframe's resource
             cutDelay += cdelay
             nRB = nRB - costRB
             p.priority[index] = -1
+        if p.numRtPkt:
+            p.avgPktDelay = ((p.avgPktDelay * pktNum) - cutDelay) / p.numRtPkt
     if nRB:
         p.unusedRB += nRB
-    if p.numRtPkt:
-        p.avgPktDelay = ((p.avgPktDelay * pktNum) - cutDelay) / p.numRtPkt
 
 
 def AllocResource2UE(nRB, ue):  # allocating the resource to the UE
@@ -212,7 +213,7 @@ def AllocResource2Embms(nRB, i):  # allocating the resource to the UE
             sumThroughput += pkt.size
             p.sysThroughput += pkt.size
             p.eMBMSpktLen[i] -= pkt.size
-            p.numRtPkt -= 1
+            p.numEmbmsPkt -= 1
 
         p.eMBMSpkt[srv][0].size -= expData  # the rest expData just can  carry a part of packet
         p.eMBMSpktLen[i] -= expData
@@ -233,7 +234,7 @@ def AllocResource2Embms(nRB, i):  # allocating the resource to the UE
             p.eMBMSpktLen[i] -= pkt.size
             p.sysThroughput += pkt.size
             sumThroughput += pkt.size
-            p.numRtPkt -= 1
+            p.numEmbmsPkt -= 1
 
         for i in p.listSuber[srv]:
             p.UeList[i].throughput += sumThroughput
@@ -245,7 +246,7 @@ def calRou(currTime):  # calculate the rou value of each time point
     sum = 0
     num = 1
     for ue in p.UeList:
-        if ue.srv and len(ue.pktList) and ue.srv in p.setEmbmsSess:
+        if ue.srv and len(ue.pktList) and not ue.srv in p.setEmbmsSess:
             sum += ue.alpha * ue.pktList[0].delay * ue.TbsIndex / 26
             num += 1
     p.rou[currTime % 5120] = sum / num
@@ -254,21 +255,22 @@ def calRou(currTime):  # calculate the rou value of each time point
 def calAvgDifRou(init):
     initRou = p.rou[init]
     avgDifRou = p.rou[init + 1] - initRou
-    for i in range(init + 2, len(p.rou)):
-        avgDifRou = 0.89 * avgDifRou + 0.11 * (p.rou[i] - initRou)
-    if avgDifRou > 0 and init == 0:
+    for i in range(init + 2, p.mcchModificationPeriod*10 + p.eMBMS_triggerTime):
+        avgDifRou = 0.985 * avgDifRou + 0.015 * (p.rou[i % (p.mcchModificationPeriod * 10)] - initRou)
+    if avgDifRou > 0.002 and init == p.eMBMS_triggerTime:
         p.incFlag = True
-    if avgDifRou <= 0 and p.unusedRbHappend:
-        p.unusedRbHappend = False
+        print("increase",avgDifRou)
+    if avgDifRou <= 0.04 and init == p.time_unusedRB:
         p.decFlag = True
+        print("decrease", avgDifRou)
 
 
-def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme for eMBMS (0.01:increase/-0.01:de-)
+def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme for eMBMS (0.01:increase/-0.01:de-/0:no modify)
     for i in range(1, p.numSrv):
         p.SessQ[i], p.SessTbs[i] = slcSessQnTbs(i)
     p.incFlag = p.decFlag = False
     currSetEmbmsSess = p.setEmbmsSess
-    while p.rateEmbmsRs < 0.6 and (p.numSrv - 1) - len(p.setEmbmsSess):
+    while 0.0 <= p.rateEmbmsRs < 0.6:
         p.rateEmbmsRs += mod
         KPS()
         p.setEmbmsSess.sort()
@@ -290,12 +292,13 @@ def uniSwMult():  # switching unicast communication to multicast
         for i in range(3):
             pktSize = p.pktSizeTable[
                 p.SessQ[srv]]  # the packet size according to the streaming quality of eMBMS session
-            p.numRtPkt += 1
+            p.numEmbmsPkt += 1
             pkt = packet(p.pktId, pktSize, p.DelayThr[srv])
             p.eMBMSpkt[srv].append(pkt)
             p.eMBMSpktLen[list(p.eMBMSpkt.keys()).index(srv)] += pktSize
             p.pktId += 1
         for i in p.listSuber[srv]:
+            p.numRtPkt -= len(p.UeList[i].pktList)
             p.UeList[i].pktList = []
             p.UeList[i].srvQ = p.SessQ[srv]
             p.UeList[i].buffLen = 0
