@@ -1,6 +1,8 @@
-import numpy as np
-from simCls import *
 import copy
+
+import numpy as np
+
+from simCls import *
 
 
 def choseSrv(i):  # choosing a RT service for UE <0: NRT; others: RT>
@@ -256,13 +258,11 @@ def calAvgDifRou(init):
     initRou = p.rou[init]
     avgDifRou = p.rou[init + 1] - initRou
     for i in range(init + 2, p.mcchModificationPeriod*10 + p.eMBMS_triggerTime):
-        avgDifRou = 0.985 * avgDifRou + 0.015 * (p.rou[i % (p.mcchModificationPeriod * 10)] - initRou)
-    if avgDifRou > 0.002 and init == p.eMBMS_triggerTime:
+        avgDifRou = 0.998 * avgDifRou + 0.002 * (p.rou[i % (p.mcchModificationPeriod * 10)] - initRou)
+    if avgDifRou > 0 and init == p.eMBMS_triggerTime:
         p.incFlag = True
-        print("increase",avgDifRou)
-    if avgDifRou <= 0.04 and init == p.time_unusedRB:
+    if avgDifRou <= 0 and init == p.time_unusedRB:
         p.decFlag = True
-        print("decrease", avgDifRou)
 
 
 def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme for eMBMS (0.01:increase/-0.01:de-/0:no modify)

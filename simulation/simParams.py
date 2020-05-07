@@ -2,7 +2,7 @@ import math
 
 # the basic parameters
 simTime = 2*60*1000 # the time length of simulation (ms)
-NumRbsPerSf = 15  # number of RBs in a sub-frame
+NumRbsPerSf = 25  # number of RBs in a sub-frame
 MaxRbAssigned = 5  # the maximum number of assigned RBs to a UE
 speed = [-60, -70, -80, 60, 70, 80]
 

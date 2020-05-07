@@ -1,6 +1,8 @@
 import math
 import random as rdm
-import parameter as p
+
+import simParams as p
+
 
 class UE:
     def __init__(self, Id, srv):
