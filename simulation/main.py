@@ -2,12 +2,12 @@ from simFunc import *
 import openpyxl
 
 #  main procedure
-newUE(20)
+newUE(200)
 for currTime in range(p.simTime):
 
     # create the UEs
-    if not currTime % 1000:
-        newUE(np.random.poisson(3))
+    """if not currTime % 1000:
+        newUE(np.random.poisson(3))"""
 
     # a new CSA Period -> reset the MSA
     if p.eMBMS_triggerTime != -1 and not currTime % (p.csaPeriod*10) - p.eMBMS_triggerTime :
@@ -47,7 +47,7 @@ for currTime in range(p.simTime):
 
     addDelay()  # add the delay time of each packet
 
-    calRou(currTime)  # calculate the rou of the time
+    calRou(currTime)  # calculate the rou of the time"
 
     # improving the streaming quality of unicast UE
     if not currTime % 3000 and currTime:
@@ -73,28 +73,31 @@ for currTime in range(p.simTime):
             calAvgDifRou(p.time_unusedRB)  # calculate the equation (13)
         if p.incFlag:  # increasing the resource for eMBMS
             modResourceAlloSchemeforeMBMS(0.01)
+            print(p.setEmbmsSess)
         elif p.decFlag and p.rateEmbmsRs:  # decreasing the resource for eMBMS
             modResourceAlloSchemeforeMBMS(-0.01)
+            print(p.setEmbmsSess)
         else:
             modResourceAlloSchemeforeMBMS(0)
+        modResourceAlloSchemeforeMBMS(0)
         p.time_unusedRB = -1
         allocSf2eMBMS(currTime)
 
 UeThroughput = 0
 for ue in p.UeList:
     UeThroughput += ue.throughput
-print("ADR:", UeThroughput / p.numUE)
-print("IPR:", p.numInvPkt / p.pktId)
-print("URR:", p.unusedRB / (p.NumRbsPerSf*p.simTime))
-print("RE:", p.sysThroughput / (p.NumRbsPerSf*p.simTime))
+ADR = (UeThroughput/p.simTime*1000) / p.numUE
+IPR = p.numInvPkt / p.pktId
+URR = p.unusedRB / (p.NumRbsPerSf*p.simTime)
+Throughput = p.sysThroughput/p.simTime*1000
 
 workbook = openpyxl.load_workbook('../../Desktop/SimulationReport.xlsx')
 worksheet = workbook.worksheets[0]
 row = str(worksheet.max_row+1)
 sheet = workbook.active
-sheet['A'+row] = UeThroughput / p.numUE
-sheet['B'+row] = p.numInvPkt / p.pktId
-sheet['C'+row] = p.unusedRB / (p.NumRbsPerSf*p.simTime)
-sheet['D'+row] = p.sysThroughput / (p.NumRbsPerSf*p.simTime)
+sheet['A'+row] = ADR
+sheet['B'+row] = IPR
+sheet['C'+row] = URR
+sheet['D'+row] = Throughput
 workbook.save('../../Desktop/SimulationReport.xlsx')
 workbook.close()

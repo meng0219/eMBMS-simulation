@@ -2,7 +2,7 @@ import math
 
 # the basic parameters
 simTime = 2*60*1000 # the time length of simulation (ms)
-NumRbsPerSf = 25  # number of RBs in a sub-frame
+NumRbsPerSf = 15  # number of RBs in a sub-frame
 MaxRbAssigned = 5  # the maximum number of assigned RBs to a UE
 speed = [-60, -70, -80, 60, 70, 80]
 
@@ -13,12 +13,12 @@ unusedRB = 0  # the number of unused RBs (init)
 
 # the service parameters
 numSrv = 5  # the number of kinds of service
-ratSrv = [0, 0.25, 0.25, 0.30, 0.2]  # the ratio of each service (the first is NRT service)
+ratSrv = [0.05, 0.25, 0.25, 0.25, 0.2]  # the ratio of each service (the first is NRT service)
 MaxDelayThr = 1000  # the maximum delay threshold of RT users
 DelayThr = [math.inf, 400, 450, 600, 1000]  # the threshold of packet delay
 Tolerate = [1, 0.01, 0.015, 0.02, 0.025]  # the maximum probability for HOL packet delay of UE to exceed DelayThr
 listSuber = [[], [], [], [], []]  # the subscriber list of each service
-pktSizeTable = [128, 256, 384, 512, 640, 768, 896, 1024]  # the packet size of each streaming quality
+pktSizeTable = [256, 512, 768, 1024, 1280, 1536, 1792, 2048]  # the packet size of each streaming quality
 
 pNRT = 0  # the weight of NRT (init)
 pktId = 0  # the packet Id (init)
