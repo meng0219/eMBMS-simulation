@@ -18,7 +18,7 @@ MaxDelayThr = 1000  # the maximum delay threshold of RT users
 DelayThr = [math.inf, 400, 450, 600, 1000]  # the threshold of packet delay
 Tolerate = [1, 0.01, 0.015, 0.02, 0.025]  # the maximum probability for HOL packet delay of UE to exceed DelayThr
 listSuber = [[], [], [], [], []]  # the subscriber list of each service
-pktSizeTable = [256, 512, 768, 1024, 1280, 1536, 1792, 2048]  # the packet size of each streaming quality
+pktSizeTable = [512, 640, 768, 896, 1024, 1152, 1280, 1408]  # the packet size of each streaming quality
 
 pNRT = 0  # the weight of NRT (init)
 pktId = 0  # the packet Id (init)

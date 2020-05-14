@@ -1,10 +1,16 @@
 from simFunc import *
+import sys
 import openpyxl
 
-#  main procedure
-newUE(200)
-for currTime in range(p.simTime):
 
+ueNum = int(sys.argv[1])
+er = float(sys.argv[2])
+sht = int(sys.argv[3])
+
+#  main procedure
+p.rateEmbmsRs = er
+newUE(ueNum)
+for currTime in range(p.simTime):
     # create the UEs
     """if not currTime % 1000:
         newUE(np.random.poisson(3))"""
@@ -37,7 +43,6 @@ for currTime in range(p.simTime):
     if len(p.sf2eMBMS) and currTime == p.sf2eMBMS[0]:  # the time is reserved to eMBMS
         resourceAllocation(1)
         p.sf2eMBMS.remove(p.sf2eMBMS[0])
-
     # assign resource to unicast UE
     else:
         resourceAllocation(0)
@@ -47,7 +52,7 @@ for currTime in range(p.simTime):
 
     addDelay()  # add the delay time of each packet
 
-    calRou(currTime)  # calculate the rou of the time"
+    #calRou(currTime)  # calculate the rou of the time"
 
     # improving the streaming quality of unicast UE
     if not currTime % 3000 and currTime:
@@ -69,16 +74,14 @@ for currTime in range(p.simTime):
     # modifying the resource for eMBMS
     if p.eMBMS_triggerTime != -1 and not currTime % (p.mcchModificationPeriod * 10) - p.eMBMS_triggerTime:
         calAvgDifRou(p.eMBMS_triggerTime)  # calculate the equation (10)
-        if p.time_unusedRB != -1:  # if unused RB event was happened in the period
+        """if p.time_unusedRB != -1:  # if unused RB event was happened in the period
             calAvgDifRou(p.time_unusedRB)  # calculate the equation (13)
         if p.incFlag:  # increasing the resource for eMBMS
             modResourceAlloSchemeforeMBMS(0.01)
-            print(p.setEmbmsSess)
         elif p.decFlag and p.rateEmbmsRs:  # decreasing the resource for eMBMS
             modResourceAlloSchemeforeMBMS(-0.01)
-            print(p.setEmbmsSess)
         else:
-            modResourceAlloSchemeforeMBMS(0)
+            modResourceAlloSchemeforeMBMS(0)"""
         modResourceAlloSchemeforeMBMS(0)
         p.time_unusedRB = -1
         allocSf2eMBMS(currTime)
@@ -92,9 +95,8 @@ URR = p.unusedRB / (p.NumRbsPerSf*p.simTime)
 Throughput = p.sysThroughput/p.simTime*1000
 
 workbook = openpyxl.load_workbook('../../Desktop/SimulationReport.xlsx')
-worksheet = workbook.worksheets[0]
-row = str(worksheet.max_row+1)
-sheet = workbook.active
+sheet = workbook.worksheets[sht]
+row = str(sheet.max_row+1)
 sheet['A'+row] = ADR
 sheet['B'+row] = IPR
 sheet['C'+row] = URR

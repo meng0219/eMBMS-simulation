@@ -141,11 +141,17 @@ def resourceAllocation(mod):  # allocating the subframe's resource
     pktNum = p.numRtPkt
     cutDelay = 0
     if mod:  # allocate the resource to eMBMS sessions
+        if not any(p.MSA):
+            resourceAllocation(0)
+            return
         for i in range(len(p.MSA)):
             if p.MSA[i]:
-                cdelay, costRB = AllocResource2Embms(nRB, i)
-                cutDelay += cdelay
-                nRB = nRB - costRB
+                if p.eMBMSpktLen[i] == 0:
+                    resourceAllocation(0)
+                else:
+                    cdelay, costRB = AllocResource2Embms(nRB, i)
+                    cutDelay += cdelay
+                    nRB = nRB - costRB
                 p.MSA[i] -= 1
                 break
     else:    # allocate the resource to UEs
@@ -201,7 +207,7 @@ def AllocResource2UE(nRB, ue):  # allocating the resource to the UE
         return cdelay, numRB
 
 
-def AllocResource2Embms(nRB, i):  # allocating the resource to the UE
+def AllocResource2Embms(nRB, i):  # allocating the resource to eMBMS
     srv = list(p.eMBMSpkt.keys())[i]
     expData = p.TbsTable[nRB][p.SessTbs[srv]]  # the amount of bits can be carried
     cdelay = 0  # the amount of cutting delay
@@ -270,7 +276,7 @@ def modResourceAlloSchemeforeMBMS(mod):  # modify the resource allocation Scheme
         p.SessQ[i], p.SessTbs[i] = slcSessQnTbs(i)
     p.incFlag = p.decFlag = False
     currSetEmbmsSess = p.setEmbmsSess
-    while 0.0 <= p.rateEmbmsRs < 0.6:
+    while 0.0 <= p.rateEmbmsRs <= 0.6:
         p.rateEmbmsRs += mod
         KPS()
         p.setEmbmsSess.sort()
