@@ -12,11 +12,11 @@ During simulation, eNB will continuously, periodically and dynamically increases
 
 The resource for eMBMS can occupy the total resource 0% to 60%. I would set it be 0%, 10%, 30% and 60% to simulate.
 ## Parameter
-simulation duration: 2 h
-number of RBs in a sub-frame: 15 RBs
-maximum number of assigned RBs to a UE: 5 RBs
-UE's movement speed: 60/70/80 km/h
-number of service types: 4
+1. simulation duration: 2 h
+2. number of RBs in a sub-frame: 15 RBs
+3. maximum number of assigned RBs to a UE: 5 RBs
+4. UE's movement speed: 60/70/80 km/h
+5. number of service types: 4
 
 see more paramater, please refere `simParams.py`
 ## Files
