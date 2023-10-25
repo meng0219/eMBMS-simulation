@@ -21,9 +21,7 @@ The resource for eMBMS can occupy the total resource 0% to 60%. I would set it b
 see more paramater, please refere `simParams.py`
 ## Files
 1. main.py: It contains main funcion to simulate whole experiment, and accepts three parameters to execute. Respectively, number of UEs, resource occupation rate of eMBMS and sheet index (for document the result on the xml file). And you can use the following command to execute the experiment.
-```
-python ./main.py 250 0.6 0
-```
+` python ./main.py 250 0.6 0 `
 That's meaning there are 250 UE in the cell and eMBMS will occupy the 60% of resource to transmit service in maximum, and sheet index is 0.
 2. simCls.py: It contains the class of UE and the class packet that is received from service provider.
 3. simFunc.py: It contains all the used function.
